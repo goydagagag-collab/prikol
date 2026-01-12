@@ -197,7 +197,7 @@ function loadLocal() {
 
 // Автоматическая загрузка JSON с GitHub
 function loadDefaultData() {
-  fetch('url=companions.json')
+  fetch('companions.json')
     .then(res => res.json())
     .then(data => {
       balance = data.balance;
