@@ -197,7 +197,7 @@ function loadLocal() {
 
 // Автоматическая загрузка JSON с GitHub
 function loadDefaultData() {
-  fetch('companions.json')
+  fetch('https://goydagagag-collab.github.io/prikol/companions.json')
     .then(res => res.json())
     .then(data => {
       balance = data.balance;
