@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>KYZDAR.NET</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #2a0a0a;
+  color: #fff0f0;
+  text-align: center;
+  margin:0;
+  padding:0;
+}
+h1 { color: #ff4c4c; margin-top:20px; }
+.balance { font-size: 22px; margin-bottom: 20px; }
+
+form {
+  background: #4a0d0d;
+  padding: 15px;
+  border-radius: 10px;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+input, textarea, select {
+  margin: 5px;
+  padding: 8px;
+  width: 200px;
+  border-radius: 5px;
+  border: none;
+}
+textarea { resize:none; }
+button {
+  background: #ff1a1a;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 5px;
+  color:white;
+  font-weight:bold;
+  transition: 0.2s;
+}
+button:hover { background: #ff4c4c; }
+
+.market {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.card {
+  background: #4d0f0f;
+  margin: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  width: 220px;
+  box-shadow: 0 0 10px #ff1a1a;
+}
+.card img {
+  width: 100%;
+  border-radius: 10px;
+}
+
+/* Модальное окно покупки */
+.modal {
+  position: fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background: rgba(0,0,0,0.8);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+.modal-box {
+  background:#4a0d0d;
+  padding:20px;
+  border-radius:10px;
+  width:300px;
+  box-shadow: 0 0 15px #ff1a1a;
+}
+.modal-box h3 { color: #ff4c4c; }
+.modal-box button {
+  margin-top:10px;
+  width: 100px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🔥РЫНОК ШЛЮШЕК🔥</h1>
+<div class="balance">Баланс: <span id="balance">0</span> ТЕНГЕ</div>
+
+<form id="form">
+  <input type="text" id="name" placeholder="Имя" required><br>
+  <input type="number" id="price" placeholder="Цена за час" required><br>
+  <textarea id="desc" placeholder="Описание" rows="3"></textarea><br>
+  <input type="file" id="image" accept="image/*" required><br>
+  <button type="submit">Добавить ДОЛБАЕБА</button>
+</form>
+
+<div style="margin:10px;">
+  <button id="saveBtn">💾 Сохранить</button>
+  <input type="file" id="loadFile" style="display:none;">
+  <button onclick="loadFile.click()">📂 Загрузить</button>
+</div>
+
+<div class="market" id="market"></div>
+
+<!-- Окно покупки -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <h3 id="modalName"></h3>
+    <p id="modalDesc"></p>
+    <p>Цена за час: <span id="modalPrice"></span> ТЕНГЕ</p>
+
+    <label>Часы аренды:</label><br>
+    <select id="hours">
+      <option value="1">1 час</option>
+      <option value="2">2 часа</option>
+      <option value="4">4 часа</option>
+      <option value="8">8 часов</option>
+      <option value="24">24 часа</option>
+    </select>
+
+    <p>Итого: <span id="total"></span> ТЕНГЕ</p>
+    <button id="confirm">Подтвердить</button>
+    <button onclick="closeModal()">Отмена</button>
+  </div>
+</div>
+
+<script>
+let balance = 100000;
+let companions = [];
+let selected = {};
+
+const nameInput = document.getElementById("name");
+const priceInput = document.getElementById("price");
+const descInput = document.getElementById("desc");
+const image = document.getElementById("image");
+const market = document.getElementById("market");
+
+const modal = document.getElementById("modal");
+const modalName = document.getElementById("modalName");
+const modalDesc = document.getElementById("modalDesc");
+const modalPrice = document.getElementById("modalPrice");
+const hours = document.getElementById("hours");
+const total = document.getElementById("total");
+const confirm = document.getElementById("confirm");
+const balanceDisplay = document.getElementById("balance");
+
+const saveBtn = document.getElementById("saveBtn");
+const loadFile = document.getElementById("loadFile");
+
+// Добавление компаньона в интерфейс
+function addCardToMarket(c) {
+  const card = document.createElement("div");
+  card.className = "card";
+
+  card.innerHTML = `
+    <img src="${c.img}">
+    <h3>${c.name}</h3>
+    <p>${c.desc}</p>
+    <p>${c.price} монет / час</p>
+    <button>Арендовать</button>
+  `;
+
+  card.querySelector("button").onclick = function(){
+    openModal(c.name, c.desc, c.price);
+  };
+
+  market.appendChild(card);
+}
+
+// Сохранение данных в localStorage
+function saveData() {
+  localStorage.setItem("balance", balance);
+  localStorage.setItem("companions", JSON.stringify(companions));
+}
+
+// Загрузка данных с localStorage
+function loadLocal() {
+  const savedBalance = localStorage.getItem("balance");
+  const savedCompanions = localStorage.getItem("companions");
+
+  if(savedBalance!==null && savedCompanions!==null){
+    balance = Number(savedBalance);
+    companions = JSON.parse(savedCompanions);
+    balanceDisplay.textContent = balance;
+    market.innerHTML = "";
+    companions.forEach(c => addCardToMarket(c));
+    return true;
+  }
+  return false;
+}
+
+// Автоматическая загрузка JSON с GitHub
+function loadDefaultData() {
+  fetch('companions.json')
+    .then(res => res.json())
+    .then(data => {
+      balance = data.balance;
+      companions = data.companions;
+      balanceDisplay.textContent = balance;
+      market.innerHTML = "";
+      companions.forEach(c => addCardToMarket(c));
+      saveData();
+    })
+    .catch(err => {
+      console.log("Не удалось загрузить JSON, пробуем localStorage...");
+      if(!loadLocal()) balanceDisplay.textContent = balance;
+    });
+}
+
+// Добавление нового компаньона
+document.getElementById("form").addEventListener("submit", function(e){
+  e.preventDefault();
+  const name = nameInput.value;
+  const price = Number(priceInput.value);
+  const desc = descInput.value;
+  const file = image.files[0];
+
+  const reader = new FileReader();
+  reader.onload = function(){
+    const c = {name, price, desc, img: reader.result};
+    companions.push(c);
+    addCardToMarket(c);
+    saveData();
+  };
+  reader.readAsDataURL(file);
+
+  nameInput.value = "";
+  priceInput.value = "";
+  descInput.value = "";
+  image.value = "";
+});
+
+// Модальное окно аренды
+function openModal(name, desc, price){
+  selected = {name, desc, price};
+  modal.style.display = "flex";
+  modalName.textContent = name;
+  modalDesc.textContent = desc;
+  modalPrice.textContent = price;
+  updateTotal();
+}
+
+hours.onchange = updateTotal;
+function updateTotal(){ total.textContent = selected.price * hours.value; }
+
+confirm.onclick = function(){
+  const cost = selected.price * hours.value;
+  if(balance >= cost){
+    balance -= cost;
+    balanceDisplay.textContent = balance;
+    saveData();
+    alert(
+      "🧾 Чек покупки\n" +
+      "Шлюха: " + selected.name + "\n" +
+      "Часы аренды: " + hours.value + "\n" +
+      "Итого: " + cost + " тенге"
+    );
+    closeModal();
+  } else { alert("Недостаточно монет!"); }
+}
+
+function closeModal(){ modal.style.display = "none"; }
+
+// Экспорт JSON
+saveBtn.onclick = function(){
+  const data = {balance, companions};
+  const blob = new Blob([JSON.stringify(data, null,2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "companions.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Импорт JSON
+loadFile.onchange = function(event){
+  const file = event.target.files[0];
+  const reader = new FileReader();
+  reader.onload = function(){
+    try {
+      const data = JSON.parse(reader.result);
+      if(data.balance!==undefined && data.companions!==undefined){
+        balance = data.balance;
+        companions = data.companions;
+        balanceDisplay.textContent = balance;
+        market.innerHTML = "";
+        companions.forEach(c => addCardToMarket(c));
+        saveData();
+        alert("Данные успешно загружены!");
+      } else alert("Неверный файл!");
+    } catch(e){ alert("Ошибка при чтении файла!"); }
+  };
+  reader.readAsText(file);
+}
+
+// Инициализация
+loadDefaultData();
+</script>
+
+</body>
+</html>
